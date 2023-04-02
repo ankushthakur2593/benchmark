@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  pulsar:
+    image: apachepulsar/pulsar:2.8.1
+    ports:
+      - "6650:6650"
+      - "8080:8080"
+      - "6651:6651"
+    environment:
+      PULSAR_MEM: "-Xms1g -Xmx1g"
+      PULSAR_MIN_MEM: "1g"
+      PULSAR_MAX_MEM: "1g"
+      PULSAR_ROOT_LOGGER: "DEBUG,console"
+      PULSAR_MEM_JAVA_OPTS: "-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/pulsar/logs/java_heapdump.hprof"
+    volumes:
+      - ./data:/pulsar/data
+      - ./logs:/pulsar/logs
+      - ./conf:/pulsar/conf
+    command: ["bin/pulsar", "standalone"]

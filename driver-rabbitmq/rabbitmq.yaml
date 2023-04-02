@@ -24,6 +24,6 @@ consumerCreationDelay: 100
 consumerCreationBatchSize: 5
 
 amqpUris:
-  - amqp://localhost
+  - amqp://localhost:5670
 messagePersistence: false
 queueType: QUORUM
