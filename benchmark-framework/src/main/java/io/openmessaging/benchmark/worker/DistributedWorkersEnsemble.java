@@ -105,7 +105,7 @@ public class DistributedWorkersEnsemble implements Worker {
         // Number of actually used workers might be less than available workers
         numberOfUsedProducerWorkers =
                 (int) topicsPerProducerMap.values().stream().filter(t -> !t.isEmpty()).count();
-        log.debug(
+        log.info(
                 "Producing worker count: {} of {}", numberOfUsedProducerWorkers, producerWorkers.size());
         topicsPerProducerMap.entrySet().parallelStream()
                 .forEach(
@@ -122,7 +122,7 @@ public class DistributedWorkersEnsemble implements Worker {
     public void startLoad(ProducerWorkAssignment producerWorkAssignment) throws IOException {
         // Reduce the publish rate across all the brokers
         double newRate = producerWorkAssignment.publishRate / numberOfUsedProducerWorkers;
-        log.debug("Setting worker assigned publish rate to {} msgs/sec", newRate);
+        log.info("Setting worker assigned publish rate to {} msgs/sec", newRate);
         // Reduce the publish rate across all the brokers
         producerWorkers.parallelStream()
                 .forEach(
@@ -151,7 +151,7 @@ public class DistributedWorkersEnsemble implements Worker {
     @Override
     public void adjustPublishRate(double publishRate) throws IOException {
         double newRate = publishRate / numberOfUsedProducerWorkers;
-        log.debug("Adjusting producer publish rate to {} msgs/sec", newRate);
+        log.info("Adjusting producer publish rate to {} msgs/sec", newRate);
         producerWorkers.parallelStream()
                 .forEach(
                         w -> {

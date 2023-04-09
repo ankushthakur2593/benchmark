@@ -85,7 +85,7 @@ public class ResourceCreator<R, C> {
 
     @SneakyThrows
     private Map<R, CreationResult<C>> executeBatch(List<R> batch) {
-        log.debug("Executing batch, size: {}", batch.size());
+        log.info("Executing batch, size: {}", batch.size());
         Thread.sleep(interBatchDelayMs);
         return invokeBatchFn.apply(batch).entrySet().stream()
                 .collect(toMap(Map.Entry::getKey, e -> complete.apply(e.getValue())));

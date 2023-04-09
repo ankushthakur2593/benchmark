@@ -58,7 +58,7 @@ public class HttpWorkerClient implements Worker {
     private final String host;
 
     public HttpWorkerClient(String host) {
-        this(asyncHttpClient(Dsl.config().setReadTimeout(600000).setRequestTimeout(600000)), host);
+        this(asyncHttpClient(Dsl.config().setReadTimeout(60000).setRequestTimeout(60000)), host);
     }
 
     HttpWorkerClient(AsyncHttpClient httpClient, String host) {
@@ -95,14 +95,14 @@ public class HttpWorkerClient implements Worker {
 
     @Override
     public void startLoad(ProducerWorkAssignment producerWorkAssignment) throws IOException {
-        log.debug(
+        log.info(
                 "Setting worker assigned publish rate to {} msgs/sec", producerWorkAssignment.publishRate);
         sendPost(START_LOAD, writer.writeValueAsBytes(producerWorkAssignment));
     }
 
     @Override
     public void adjustPublishRate(double publishRate) throws IOException {
-        log.debug("Adjusting worker publish rate to {} msgs/sec", publishRate);
+        log.info("Adjusting worker publish rate to {} msgs/sec", publishRate);
         sendPost(ADJUST_PUBLISH_RATE, writer.writeValueAsBytes(publishRate));
     }
 

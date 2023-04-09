@@ -51,7 +51,7 @@ class RateController {
         previousTotalReceived = totalReceived;
 
         if (log.isDebugEnabled()) {
-            log.debug(
+            log.info(
                     "Current rate: {} -- Publish rate {} -- Receive Rate: {}",
                     rate,
                     rate(published, periodNanos),
@@ -74,7 +74,7 @@ class RateController {
     }
 
     private double nextRate(long periodNanos, long actual, long expected, long backlog, String type) {
-        log.debug("{} backlog: {}", type, backlog);
+        log.info("{} backlog: {}", type, backlog);
         rampDown();
         long nextExpected = Math.max(0, expected - backlog);
         double nextExpectedRate = rate(nextExpected, periodNanos);

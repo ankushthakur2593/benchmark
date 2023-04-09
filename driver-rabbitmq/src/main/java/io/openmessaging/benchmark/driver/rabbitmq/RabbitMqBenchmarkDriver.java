@@ -138,7 +138,7 @@ public class RabbitMqBenchmarkDriver implements BenchmarkDriver {
                                 Thread.currentThread().interrupt();
                                 throw new RuntimeException(e);
                             } catch (ExecutionException e) {
-                                log.debug(e.getMessage());
+                                log.error(e.getMessage());
                                 return new CreationResult<>(null, false);
                             }
                         })
@@ -168,7 +168,7 @@ public class RabbitMqBenchmarkDriver implements BenchmarkDriver {
                                 Thread.currentThread().interrupt();
                                 throw new RuntimeException(e);
                             } catch (ExecutionException e) {
-                                log.debug(e.getMessage());
+                                log.error(e.getMessage());
                                 return new CreationResult<>(null, false);
                             }
                         })

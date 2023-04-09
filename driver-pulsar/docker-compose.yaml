@@ -1,3 +1,17 @@
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 version: '3'
 
 services:
@@ -7,14 +21,12 @@ services:
       - "6650:6650"
       - "8080:8080"
       - "6651:6651"
+      - "3181:3181"
+      - "2181:2181"
     environment:
       PULSAR_MEM: "-Xms1g -Xmx1g"
       PULSAR_MIN_MEM: "1g"
       PULSAR_MAX_MEM: "1g"
       PULSAR_ROOT_LOGGER: "DEBUG,console"
       PULSAR_MEM_JAVA_OPTS: "-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/pulsar/logs/java_heapdump.hprof"
-    volumes:
-      - ./data:/pulsar/data
-      - ./logs:/pulsar/logs
-      - ./conf:/pulsar/conf
     command: ["bin/pulsar", "standalone"]

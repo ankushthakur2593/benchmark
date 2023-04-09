@@ -90,7 +90,7 @@ class KafkaTopicCreator {
     }
 
     private Map<TopicInfo, Boolean> executeBatch(List<TopicInfo> batch) {
-        log.debug("Executing batch, size: {}", batch.size());
+        log.info("Executing batch, size: {}", batch.size());
         Map<String, TopicInfo> lookup = batch.stream().collect(toMap(TopicInfo::getTopic, identity()));
 
         List<NewTopic> newTopics = batch.stream().map(this::newTopic).collect(toList());
@@ -113,7 +113,7 @@ class KafkaTopicCreator {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         } catch (ExecutionException e) {
-            log.debug(e.getMessage());
+            log.error(e.getMessage());
             return e.getCause() instanceof TopicExistsException;
         }
         return true;
