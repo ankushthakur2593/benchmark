@@ -16,17 +16,15 @@ version: '3'
 
 services:
   pulsar:
-    image: apachepulsar/pulsar:2.8.1
+    image: apachepulsar/pulsar-standalone:2.8.4
     ports:
       - "6650:6650"
       - "8080:8080"
       - "6651:6651"
-      - "3181:3181"
-      - "2181:2181"
+      - "8443:8443"
     environment:
       PULSAR_MEM: "-Xms1g -Xmx1g"
       PULSAR_MIN_MEM: "1g"
       PULSAR_MAX_MEM: "1g"
-      PULSAR_ROOT_LOGGER: "DEBUG,console"
-      PULSAR_MEM_JAVA_OPTS: "-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/pulsar/logs/java_heapdump.hprof"
-    command: ["bin/pulsar", "standalone"]
+      PULSAR_GC_OPTS: "-XX:+UseG1GC"
+      PULSAR_EXTRA_OPTS: "-Dio.netty.leakDetection.level=disabled"
