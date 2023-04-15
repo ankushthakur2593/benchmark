@@ -12,24 +12,14 @@
 # limitations under the License.
 #
 
-version: '3.7'
-
+version: '3'
 services:
   artemis:
-    image: vromero/activemq-artemis
+    image: artemis-standalone
     ports:
-      - "8161:8161"
       - "61616:61616"
-      - "5672:5672"
+      - "8161:8161"
     volumes:
-      - ./data:/var/lib/artemis/data
-    environment:
-      - ARTEMIS_USERNAME=admin
-      - ARTEMIS_PASSWORD=admin
-      - ARTEMIS_MIN_MEMORY=512M
-      - ARTEMIS_MAX_MEMORY=2G
-      - ARTEMIS_ACCEPTOR_TCP_PROTOCOLS=MQTT,STOMP,OPENWIRE,CORE
-      - ARTEMIS_ACCEPTOR_AMQP_ENABLED=true
-      - ARTEMIS_ACCEPTOR_STOMP_ENABLED=true
-      - ARTEMIS_ACCEPTOR_MQTT_ENABLED=true
-      - ARTEMIS_ACCEPTOR_OPENWIRE_ENABLED=true
+      - ./data:/data
+    command: sh -c "./artemis create --force /data --user admin --password admin --allow-anonymous && \
+      /data/bin/artemis run"
