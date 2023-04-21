@@ -21,7 +21,7 @@ client:
   httpUrl: http://localhost:8080
   ioThreads: 4
   connectionsPerBroker: 8
-  clusterName: standalone
+  clusterName: cluster-a
   namespacePrefix: benchmark/ns
   topicType: persistent
   persistence:

@@ -13,18 +13,228 @@
 #
 
 version: '3'
-
-services:
+networks:
   pulsar:
-    image: apachepulsar/pulsar-standalone:2.8.4
+    driver: bridge
+services:
+  # Start zookeeper
+  zookeeper:
+    image: apachepulsar/pulsar:latest
+    container_name: zookeeper
+    restart: on-failure
+    networks:
+      - pulsar
+    volumes:
+      - ./data/zookeeper:/pulsar/data/zookeeper
+    environment:
+      - metadataStoreUrl=zk:zookeeper:2181
+      - PULSAR_MEM=-Xms256m -Xmx256m -XX:MaxDirectMemorySize=256m
+    command: >
+      bash -c "bin/apply-config-from-env.py conf/zookeeper.conf && \
+             bin/generate-zookeeper-config.sh conf/zookeeper.conf && \
+             exec bin/pulsar zookeeper"
+    healthcheck:
+      test: [ "CMD", "bin/pulsar-zookeeper-ruok.sh" ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  # Init cluster metadata
+  pulsar-init:
+    container_name: pulsar-init
+    hostname: pulsar-init
+    image: apachepulsar/pulsar:latest
+    networks:
+      - pulsar
+    command: >
+      bin/pulsar initialize-cluster-metadata \
+               --cluster cluster-a \
+               --zookeeper zookeeper:2181 \
+               --configuration-store zookeeper:2181 \
+               --web-service-url http://broker:8080 \
+               --broker-service-url pulsar://broker:6650
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+
+  # Start bookie
+  bookie1:
+    image: apachepulsar/pulsar:latest
+    container_name: bookie1
+    restart: on-failure
+    networks:
+      - pulsar
+    environment:
+      - clusterName=cluster-a
+      - zkServers=zookeeper:2181
+      - metadataServiceUri=metadata-store:zk:zookeeper:2181
+      # otherwise every time we run docker compose up or down we fail to start due to Cookie
+      # See: https://github.com/apache/bookkeeper/blob/405e72acf42bb1104296447ea8840d805094c787/bookkeeper-server/src/main/java/org/apache/bookkeeper/bookie/Cookie.java#L57-68
+      - advertisedAddress=bookie1
+#      - advertisedListeners=external:pulsar://${DOCKER_HOST_IP:-127.0.0.1}:3181
+      - BOOKIE_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+      pulsar-init:
+        condition: service_completed_successfully
+    # Map the local directory to the container to avoid bookie startup failure due to insufficient container disks.
+    volumes:
+      - ./data/bookkeeper:/pulsar/data/bookkeeper
+    command: bash -c "bin/apply-config-from-env.py conf/bookkeeper.conf && exec bin/pulsar bookie"
+
+  bookie2:
+    image: apachepulsar/pulsar:latest
+    container_name: bookie2
+    restart: on-failure
+    networks:
+      - pulsar
+    environment:
+      - BOOKIE_PORT=4181
+      - clusterName=cluster-a
+      - zkServers=zookeeper:2181
+      - metadataServiceUri=metadata-store:zk:zookeeper:2181
+      - advertisedAddress=bookie2
+#      - advertisedListeners=external:pulsar://${DOCKER_HOST_IP:-127.0.0.1}:4181
+      - BOOKIE_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m
+    ports:
+      - "4181:4181"
+    depends_on:
+      bookie1:
+        condition: service_started
+      zookeeper:
+        condition: service_healthy
+      pulsar-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./data/bookkeeper2:/pulsar/data/bookkeeper
+    command: bash -c "bin/apply-config-from-env.py conf/bookkeeper.conf && exec bin/pulsar bookie -p 4181"
+
+  bookie3:
+    image: apachepulsar/pulsar:latest
+    container_name: bookie3
+    restart: on-failure
+    networks:
+      - pulsar
+    environment:
+      - BOOKIE_PORT=4182
+      - clusterName=cluster-a
+      - zkServers=zookeeper:2181
+      - metadataServiceUri=metadata-store:zk:zookeeper:2181
+      - advertisedAddress=bookie3
+#      - advertisedListeners=external:pulsar://${DOCKER_HOST_IP:-127.0.0.1}:4182
+      - BOOKIE_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m
+    ports:
+      - "4182:4182"
+    depends_on:
+      bookie1:
+        condition: service_started
+      bookie2:
+        condition: service_started
+      zookeeper:
+        condition: service_healthy
+      pulsar-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./data/bookkeeper3:/pulsar/data/bookkeeper
+    command: bash -c "bin/apply-config-from-env.py conf/bookkeeper.conf && exec bin/pulsar bookie -p 4182"
+
+  # Start broker
+  broker-1:
+    image: apachepulsar/pulsar:latest
+    container_name: broker-1
+    hostname: broker-1
+    restart: on-failure
+    networks:
+      - pulsar
+    environment:
+      - metadataStoreUrl=zk:zookeeper:2181
+      - zookeeperServers=zookeeper:2181
+      - clusterName=cluster-a
+      - managedLedgerDefaultEnsembleSize=3
+      - managedLedgerDefaultWriteQuorum=3
+      - managedLedgerDefaultAckQuorum=2
+      - advertisedAddress=broker-1
+      - advertisedListeners=external:pulsar://${DOCKER_HOST_IP:-127.0.0.1}:6650
+      - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+      bookie1:
+        condition: service_started
+      bookie2:
+        condition: service_started
+      bookie3:
+        condition: service_started
     ports:
       - "6650:6650"
       - "8080:8080"
-      - "6651:6651"
-      - "8443:8443"
-    environment:
-      PULSAR_MEM: "-Xms1g -Xmx1g"
-      PULSAR_MIN_MEM: "1g"
-      PULSAR_MAX_MEM: "1g"
-      PULSAR_GC_OPTS: "-XX:+UseG1GC"
-      PULSAR_EXTRA_OPTS: "-Dio.netty.leakDetection.level=disabled"
+    command: bash -c "bin/apply-config-from-env.py conf/broker.conf && exec bin/pulsar broker"
+
+#  broker-2:
+#    image: apachepulsar/pulsar:latest
+#    container_name: broker-2
+#    hostname: broker-2
+#    restart: on-failure
+#    networks:
+#      - pulsar
+#    environment:
+#      - metadataStoreUrl=zk:zookeeper:2181
+#      - zookeeperServers=zookeeper:2181
+#      - clusterName=cluster-a
+#      - managedLedgerDefaultEnsembleSize=3
+#      - managedLedgerDefaultWriteQuorum=3
+#      - managedLedgerDefaultAckQuorum=2
+#      - advertisedAddress=broker-2
+#      - advertisedListeners=external:pulsar://${DOCKER_HOST_IP:-127.0.0.1}:6651
+#      - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m
+#    depends_on:
+#      broker-1:
+#        condition: service_started
+#      zookeeper:
+#        condition: service_healthy
+#      bookie1:
+#        condition: service_started
+#      bookie2:
+#        condition: service_started
+#      bookie3:
+#        condition: service_started
+#    ports:
+#      - "6651:6650"
+#      - "8081:8080"
+#    command: bash -c "bin/apply-config-from-env.py conf/broker.conf && exec bin/pulsar broker"
+#
+#  broker-3:
+#    image: apachepulsar/pulsar:latest
+#    container_name: broker-3
+#    hostname: broker-3
+#    restart: on-failure
+#    networks:
+#      - pulsar
+#    environment:
+#      - metadataStoreUrl=zk:zookeeper:2181
+#      - zookeeperServers=zookeeper:2181
+#      - clusterName=cluster-a
+#      - managedLedgerDefaultEnsembleSize=3
+#      - managedLedgerDefaultWriteQuorum=3
+#      - managedLedgerDefaultAckQuorum=2
+#      - advertisedAddress=broker-3
+#      - advertisedListeners=external:pulsar://${DOCKER_HOST_IP:-127.0.0.1}:6652
+#      - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m
+#    depends_on:
+#      broker-1:
+#        condition: service_started
+#      broker-2:
+#        condition: service_started
+#      zookeeper:
+#        condition: service_healthy
+#      bookie1:
+#        condition: service_started
+#      bookie2:
+#        condition: service_started
+#      bookie3:
+#        condition: service_started
+#    ports:
+#      - "6652:6650"
+#      - "8082:8080"
+#    command: bash -c "bin/apply-config-from-env.py conf/broker.conf && exec bin/pulsar broker"
